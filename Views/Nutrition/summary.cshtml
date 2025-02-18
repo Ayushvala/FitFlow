@@ -1,0 +1,305 @@
+@model FitnessTracker.Controllers.NutritionSummaryModel
+@{
+    ViewData["Title"] = "Nutrition";
+
+    // Calculate data for today, yesterday, last 7 days, last 28 days
+    var todayRecords = Model.Records.Where(record => record.ConsumptionDate == DateTime.Today);
+    var todayCalories = todayRecords.Sum(record => record.Food.Calories);
+    var todayCarbs = todayRecords.Sum(record => record.Food.Carbohydrates);
+    var todayProtein = todayRecords.Sum(record => record.Food.Protein);
+    var todayFat = todayRecords.Sum(record => record.Food.Fat);
+
+    // Similarly, calculate for yesterday, last 7 days, last 28 days
+    var yesterdayRecords = Model.Records.Where(record => record.ConsumptionDate == DateTime.Today.AddDays(-1));
+    var yesterdayCalories = yesterdayRecords.Sum(record => record.Food.Calories);
+    var yesterdayCarbs = yesterdayRecords.Sum(record => record.Food.Carbohydrates);
+    var yesterdayProtein = yesterdayRecords.Sum(record => record.Food.Protein);
+    var yesterdayFat = yesterdayRecords.Sum(record => record.Food.Fat);
+
+    var weekRecordGroup = Model.Records.Where(record => record.ConsumptionDate >= DateTime.Today.AddDays(-7)).GroupBy(record => record.ConsumptionDate);
+    var weekCaloriesAverage = weekRecordGroup.Count() == 0 ? 0 : (int)weekRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Calories));
+    var weekCarbsAverage = weekRecordGroup.Count() == 0 ? 0 : (int)weekRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Carbohydrates));
+    var weekProteinAverage = weekRecordGroup.Count() == 0 ? 0 : (int)weekRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Protein));
+    var weekFatAverage = weekRecordGroup.Count() == 0 ? 0 : (int)weekRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Fat));
+
+    var monthRecordGroup = Model.Records.Where(record => record.ConsumptionDate >= DateTime.Today.AddDays(-28)).GroupBy(record => record.ConsumptionDate);
+    var monthCaloriesAverage = monthRecordGroup.Count() == 0 ? 0 : (int)monthRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Calories));
+    var monthCarbsAverage = monthRecordGroup.Count() == 0 ? 0 : (int)monthRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Carbohydrates));
+    var monthProteinAverage = monthRecordGroup.Count() == 0 ? 0 : (int)monthRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Protein));
+    var monthFatAverage = monthRecordGroup.Count() == 0 ? 0 : (int)monthRecordGroup.Average(grouping => grouping.Sum(record => record.Food.Fat));
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+    <script src="~/js/Nutrition/summary.js"></script>
+
+    <script>
+        // Pass the updated data to JavaScript from Razor
+        var weekCaloriesData = @Html.Raw(Json.Serialize(new { Calories = @weekCaloriesAverage, Carbs = @weekCarbsAverage, Protein = @weekProteinAverage, Fat = @weekFatAverage }));
+        var monthCaloriesData = @Html.Raw(Json.Serialize(new { Calories = @monthCaloriesAverage, Carbs = @monthCarbsAverage, Protein = @monthProteinAverage, Fat = @monthFatAverage }));
+
+        function createCharts(data) {
+            var ctx1 = document.getElementById('WeekCaloriesGraph').getContext('2d');
+            var ctx2 = document.getElementById('WeekMacroGraph').getContext('2d');
+            var ctx3 = document.getElementById('MonthCaloriesGraph').getContext('2d');
+            var ctx4 = document.getElementById('MonthMacroGraph').getContext('2d');
+
+            // Destroy any existing charts before creating new ones
+            if (window.chart1) {
+                window.chart1.destroy();
+            }
+            if (window.chart2) {
+                window.chart2.destroy();
+            }
+            if (window.chart3) {
+                window.chart3.destroy();
+            }
+            if (window.chart4) {
+                window.chart4.destroy();
+            }
+
+            // Week Chart for Calories
+            window.chart1 = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Calories', 'Carbs', 'Protein', 'Fat'],
+                    datasets: [{
+                        label: 'Last 7 Days Average',
+                        data: [data.Calories, data.Carbs, data.Protein, data.Fat],
+                        backgroundColor: ['rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)'],
+                        borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Pie Chart for Week Macronutrients
+            window.chart2 = new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: ['Carbs', 'Protein', 'Fat'],
+                    datasets: [{
+                        data: [data.Carbs, data.Protein, data.Fat],
+                        backgroundColor: ['rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)'],
+                        borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+                        borderWidth: 1
+                    }]
+                }
+            });
+
+            // Month Chart for Calories
+            window.chart3 = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['Calories', 'Carbs', 'Protein', 'Fat'],
+                    datasets: [{
+                        label: 'Last 28 Days Average',
+                        data: [data.Calories, data.Carbs, data.Protein, data.Fat],
+                        backgroundColor: ['rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)'],
+                        borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Pie Chart for Month Macronutrients
+            window.chart4 = new Chart(ctx4, {
+                type: 'pie',
+                data: {
+                    labels: ['Carbs', 'Protein', 'Fat'],
+                    datasets: [{
+                        data: [data.Carbs, data.Protein, data.Fat],
+                        backgroundColor: ['rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)'],
+                        borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+                        borderWidth: 1
+                    }]
+                }
+            });
+        }
+
+        // Call the createCharts function when the page is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            createCharts(weekCaloriesData); // Pass the data for week averages
+        });
+    </script>
+}
+
+
+<div class="mb-3">
+    <h2 class="d-inline">Nutrition Summary</h2>
+    <a asp-controller="Nutrition" asp-action="AddFood" class="font-weight-bold mb-3">+Add Food</a>
+</div>
+
+<div id="MonthGraphData" class="d-none"></div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h3>Target</h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-2">
+                    <h4>Calories</h4>
+                    @Model.Target.DailyCalories cal
+                </div>
+                <div class="d-flex text-center">
+                    <div class="flex-grow-1">
+                        <h6>Carbs</h6>
+                        <div>@(Model.Target.DailyCarbohydrates)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Fat</h6>
+                        <div>@(Model.Target.DailyProtein)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Protein</h6>
+                        <div>@(Model.Target.DailyFat)g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h3>Today</h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-2">
+                    <h4>Calories</h4>
+                    @todayCalories cal
+                </div>
+                <div class="d-flex text-center">
+                    <div class="flex-grow-1">
+                        <h6>Carbs</h6>
+                        <div>@(todayCarbs)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Fat</h6>
+                        <div>@(todayProtein)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Protein</h6>
+                        <div>@(todayFat)g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h3>Yesterday</h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-2">
+                    <h4>Calories</h4>
+                    @yesterdayCalories cal
+                </div>
+                <div class="d-flex text-center">
+                    <div class="flex-grow-1">
+                        <h6>Carbs</h6>
+                        <div>@(yesterdayCarbs)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Fat</h6>
+                        <div>@(yesterdayProtein)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Protein</h6>
+                        <div>@(yesterdayFat)g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h3>Last 7 days <span class="small" style="font-size:55%">Average</span></h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-2">
+                    <h4>Calories</h4>
+                    @weekCaloriesAverage cal
+                </div>
+                <div class="d-flex text-center">
+                    <div class="flex-grow-1">
+                        <h6>Carbs</h6>
+                        <div>@(weekCarbsAverage)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Fat</h6>
+                        <div>@(weekProteinAverage)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Protein</h6>
+                        <div>@(weekFatAverage)g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h3>Last 28 days <span class="small" style="font-size:55%">Average</span></h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-2">
+                    <h4>Calories</h4>
+                    @monthCaloriesAverage cal
+                </div>
+                <div class="d-flex text-center">
+                    <div class="flex-grow-1">
+                        <h6>Carbs</h6>
+                        <div>@(monthCarbsAverage)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Fat</h6>
+                        <div>@(monthProteinAverage)g</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6>Protein</h6>
+                        <div>@(monthFatAverage)g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="text-center mt-3">Last 7 Days</h3>
+<div class="row mt-3 mb-3">
+    <div class="col">
+        <canvas id="WeekCaloriesGraph" style="max-width:100%"></canvas>
+    </div>
+    <div class="col">
+        <canvas id="WeekMacroGraph" style="max-width:100%"></canvas>
+    </div>
+</div>
+
+<h3 class="text-center mt-3">Last 28 Days</h3>
+<div class="row mt-3">
+    <div class="col">
+        <canvas id="MonthCaloriesGraph" style="max-width:100%"></canvas>
+    </div>
+    <div class="col">
+        <canvas id="MonthMacroGraph" style="max-width:100%"></canvas>
+    </div>
+</div>

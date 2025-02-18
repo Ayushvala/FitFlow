@@ -1,0 +1,72 @@
+﻿@{
+    ViewData["Title"] = "BMIView";
+}
+
+<div class="container">
+    <h2 class="text-center">BMI Calculator</h2>
+    <form asp-action="BMIView" method="post">
+        <div class="row">
+            <!-- Height Input -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="height">Height (m)</label>
+                    <input type="number" step="0.01" class="form-control" id="height" name="height" value="@Model.height" required />
+                </div>
+            </div>
+
+            <!-- Weight Input -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="weight">Weight (kg)</label>
+                    <input type="number" step="0.1" class="form-control" id="weight" name="weight" value="@Model.weight" required />
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group text-center">
+            <button type="submit" class="btn btn-primary">Calculate BMI</button>
+        </div>
+       
+        @if (Model.BMIScore > 0)
+        {
+            // Apply different background color based on BMI category
+            string bgColor = "";
+            if (Model.Category == "Underweight")
+            {
+                bgColor = "alert-info"; // Blue for Underweight
+            }
+            else if (Model.Category == "Healthy weight")
+            {
+                bgColor = "alert-success"; // Green for Healthy weight
+            }
+            else if (Model.Category == "Overweight")
+            {
+                bgColor = "alert-warning"; // Yellow for Overweight
+            }
+            else if (Model.Category == "Obesity")
+            {
+                bgColor = "alert-danger"; // Red for Obesity
+            }
+            else
+            {
+                bgColor = "alert-light"; // Default background color
+            }
+
+            <div class="alert @bgColor text-center">
+                <h4>Your BMI: @Model.BMIScore</h4>
+                <h4>Category: @Model.Category</h4>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger text-center">
+                <h4>Please enter your height and weight to calculate BMI.</h4>
+            </div>
+        }
+    </form>
+</div>
+
+<!-- Bootstrap JavaScript and jQuery -->
+<script src="https://kit.fontawesome.com/a02247f0e6.js" crossorigin="anonymous"></script>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
